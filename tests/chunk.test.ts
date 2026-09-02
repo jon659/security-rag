@@ -24,3 +24,11 @@ describe("chunkMarkdown", () => {
     expect(chunks.map((c) => c.ordinal)).toEqual([0, 1]);
   });
 });
+
+describe("chunkMarkdown guards", () => {
+  it("terminates when overlap is larger than the window", () => {
+    const chunks = chunkMarkdown("# S\n\n" + "A".repeat(500), { maxChars: 100, overlapChars: 200 });
+    expect(chunks.length).toBeGreaterThan(1);
+    for (const c of chunks) expect(c.content.length).toBeLessThanOrEqual(100);
+  });
+});

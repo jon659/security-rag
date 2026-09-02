@@ -5,7 +5,7 @@ type Opts = { maxChars?: number; overlapChars?: number };
 /** Split markdown into heading-scoped sections, then window long sections with overlap. */
 export function chunkMarkdown(markdown: string, opts: Opts = {}): Chunk[] {
   const maxChars = opts.maxChars ?? 3200;   // "??" means: use this default if none was given
-  const overlap = opts.overlapChars ?? 400;
+  const overlap = Math.min(opts.overlapChars ?? 400, maxChars - 1);
   const lines = markdown.split(/\r?\n/);    // one entry per line, Windows or Unix line endings
 
   // Pass 1: group lines under their nearest heading.
