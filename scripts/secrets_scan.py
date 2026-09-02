@@ -106,9 +106,21 @@ def secret_patterns():
         #        a call is always followed by "(" -- so we refuse the match if
         #        the next char is an open-paren. One live-run false positive ->
         #        one surgical exclusion. That loop IS detection engineering.
+        #      - security-rag live-run tuning (2026-09-02), two more surgical
+        #        exclusions in the same spirit:
+        #        (a) (?![A-Za-z_]\w*\.) -> a value that starts with an identifier
+        #            followed by "." is a code reference (cfg.apiKey, e.API_KEY,
+        #            process.env.X), not a literal. Real secrets never start
+        #            with "word." because they are opaque strings.
+        #        (b) (?![^\s'\"]*(?:your|example|placeholder|changeme|xxxx))
+        #            -> a value containing a placeholder word is documentation
+        #            (.env.example says your-key-here). Real keys are random.
         ("Generic secret assignment",
          re.compile(r"(?i)[\w.-]*(?:api[_-]?key|token|secret|passw)[\w.-]*"
-                    r"\s*[:=]\s*['\"]?[A-Za-z0-9_\-./+]{12,}['\"]?(?!\()")),
+                    r"\s*[:=]\s*['\"]?"
+                    r"(?![A-Za-z_]\w*\.)"
+                    r"(?![^\s'\"]*(?:your|example|placeholder|changeme|xxxx))"
+                    r"[A-Za-z0-9_\-./+]{12,}['\"]?(?!\()")),
 
         # 2. VENDOR-SHAPED TOKENS -- near-zero false positives because these
         #    prefixes are globally unique to one issuer. If you see "ghp_" + 36
