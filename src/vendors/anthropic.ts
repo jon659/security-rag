@@ -8,7 +8,40 @@ Rules:
 2. Cite sources by their numeric id in square brackets, like [12], after each claim.
 3. If the sources do not contain the answer, reply with exactly: NOT_COVERED: followed by one sentence saying what the sources do cover.
 4. Be concise: 3 to 8 sentences.
-Return JSON only: {"answer": string, "citations": number[]} where citations lists every id you cited.`;
+Respond by calling the answer tool with the answer text and the list of every id you cited.`;
+
+const ANSWER_TOOL: Anthropic.Messages.Tool = {
+  name: "answer",
+  description: "Deliver the final answer and the source ids it cites.",
+  input_schema: {
+    type: "object",
+    properties: {
+      answer: { type: "string", description: "The answer text, or NOT_COVERED: followed by one sentence." },
+      citations: { type: "array", items: { type: "integer" }, description: "Every source id cited in the answer." },
+    },
+    required: ["answer", "citations"],
+  },
+};
+
+/**
+ * Read the answer tool call out of a response. Exported for unit tests. A response with no
+ * tool call (the model wrote prose instead) yields the prose and no citations, which the
+ * graph's verify step turns into a refusal rather than an uncited answer.
+ */
+export function parseGenerateResponse(msg: Anthropic.Messages.Message): { answer: string; citations: number[] } {
+  const call = msg.content.find((b) => b.type === "tool_use" && b.name === "answer");
+  if (call && call.type === "tool_use") {
+    const input = call.input as { answer?: unknown; citations?: unknown };
+    const answer = typeof input.answer === "string" ? input.answer : "";
+    const citations = Array.isArray(input.citations)
+      ? input.citations.map(Number).filter((n) => Number.isInteger(n))
+      : [];
+    if (answer) return { answer, citations };
+  }
+  const raw = textOf(msg);
+  console.log(JSON.stringify({ level: "warn", event: "generate_no_tool_call", stopReason: msg.stop_reason, rawLength: raw.length }));
+  return { answer: raw, citations: [] };
+}
 
 const REWRITE_SYSTEM = `Rewrite the user's question as a precise search query using the vocabulary of the OWASP Top 10, the OWASP Top 10 for LLM Applications, and MITRE ATLAS. Return only the rewritten query, one line, no quotes.`;
 
@@ -30,20 +63,11 @@ export function makeAnthropic(cfg: Config): Pick<Vendors, "rewrite" | "generate"
     async generate(question, chunks: RetrievedChunk[]) {
       const sources = chunks.map((c) => `[${c.id}] (${c.title} / ${c.section})\n${c.content}`).join("\n\n");
       const msg = await client.messages.create({
-        model: cfg.generateModel, max_tokens: 700, system: GENERATE_SYSTEM,
+        model: cfg.generateModel, max_tokens: 1200, system: GENERATE_SYSTEM,
+        tools: [ANSWER_TOOL], tool_choice: { type: "tool", name: "answer" },
         messages: [{ role: "user", content: `Sources:\n\n${sources}\n\nQuestion: ${question}` }],
       });
-      const raw = textOf(msg);
-      const jsonText = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
-      try {
-        const parsed = JSON.parse(jsonText) as { answer?: unknown; citations?: unknown };
-        const answer = typeof parsed.answer === "string" ? parsed.answer : raw;
-        const citations = Array.isArray(parsed.citations) ? parsed.citations.filter((n): n is number => Number.isInteger(n)) : [];
-        return { answer, citations };
-      } catch {
-        console.log(JSON.stringify({ level: "warn", event: "generate_parse_failed", rawLength: raw.length }));
-        return { answer: raw, citations: [] };
-      }
+      return parseGenerateResponse(msg);
     },
   };
 }

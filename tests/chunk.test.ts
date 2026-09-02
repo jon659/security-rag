@@ -5,11 +5,25 @@ describe("chunkMarkdown", () => {
   it("returns nothing for empty input", () => {
     expect(chunkMarkdown("")).toEqual([]);
   });
-  it("records the nearest heading as the section", () => {
-    const md = "# Title\n\nIntro text.\n\n## Prompt Injection\n\nDetails here.";
+  it("records the heading breadcrumb as the section, without the document title", () => {
+    const md = "# Title\n\nIntro text.\n\n## Prompt Injection\n\nDetails here.\n\n### Description\n\nMore.";
     const chunks = chunkMarkdown(md);
     expect(chunks[0].section).toBe("Title");
-    expect(chunks.at(-1)?.section).toBe("Prompt Injection");
+    expect(chunks[1].section).toBe("Prompt Injection");
+    expect(chunks.at(-1)?.section).toBe("Prompt Injection > Description");
+  });
+  it("keeps sibling top-level risks distinct and strips heading images", () => {
+    const md = [
+      "# OWASP Top 10 2021", "", "Intro.", "",
+      "# A01:2021 Broken Access Control    ![icon](x.png){: style=\"h\"}", "", "## Description", "", "Text A.", "",
+      "# A02:2021 Cryptographic Failures", "", "## How to Prevent", "", "Text B.",
+    ].join("\n");
+    const sections = chunkMarkdown(md).map((c) => c.section);
+    expect(sections).toEqual([
+      "OWASP Top 10 2021",
+      "A01:2021 Broken Access Control > Description",
+      "A02:2021 Cryptographic Failures > How to Prevent",
+    ]);
   });
   it("never exceeds maxChars and overlaps consecutive windows", () => {
     const body = Array.from({ length: 40 }, (_, i) => `Sentence number ${i} says something useful.`).join(" ");
