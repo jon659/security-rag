@@ -19,7 +19,10 @@ for (const q of questions) {
   const qv = await cohere.embedQuery(q.question);
   const candidates = await store.nearest(qv, 20);
   const ranked = await cohere.rerank(q.question, candidates.map((c) => ({ id: c.id, text: c.content })), 5);
-  const retrieved = ranked.map((r) => ({ ...candidates.find((c) => c.id === r.id)!, score: r.score }));
+  const retrieved = ranked.flatMap((r) => {
+    const c = candidates.find((x) => x.id === r.id);
+    return c ? [{ ...c, score: r.score }] : [];
+  });
   const result = await graph.ask(q.question);
   const row = scoreOne(q, result, retrieved);
   rows.push(row);
