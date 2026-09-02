@@ -55,6 +55,13 @@ describe("app", () => {
     // A different real client (different sourceIp) is unaffected.
     expect((await post(a, { question: "q" }, "1.1.1.99", lambdaEnv("8.8.8.8"))).status).toBe(200);
   });
+  it("uses the last x-forwarded-for hop outside Lambda, so a forged first hop shares the counter", async () => {
+    const a = app();
+    for (let i = 0; i < 10; i++) {
+      expect((await post(a, { question: "q" }, `9.9.9.${i}, 2.2.2.2`)).status).toBe(200);
+    }
+    expect((await post(a, { question: "q" }, "1.1.1.1, 2.2.2.2")).status).toBe(429);
+  });
   it("returns 502 when the pipeline throws a vendor error", async () => {
     const a = app({ ask: async () => { throw new Error("vendor: cohere timeout"); } });
     expect((await post(a, { question: "q" })).status).toBe(502);
@@ -72,6 +79,11 @@ describe("app", () => {
 });
 
 describe("createRateLimiter", () => {
+  it("drops every counter once distinct keys exceed twice the sweep threshold inside one window", () => {
+    const limiter = createRateLimiter({ limit: 1, windowMs: 1000, sweepThreshold: 5 });
+    for (let i = 0; i < 11; i++) limiter.hit(`k${i}`, 0);
+    expect(limiter.size()).toBeLessThanOrEqual(5 * 2);
+  });
   it("allows up to the limit then blocks the next hit in the window", () => {
     const limiter = createRateLimiter({ limit: 2, windowMs: 1000 });
     expect(limiter.hit("a", 0)).toBe(true);

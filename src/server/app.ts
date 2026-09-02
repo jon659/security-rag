@@ -7,9 +7,10 @@ const Body = z.object({ question: z.string().min(1).max(500) });
 const LIMIT = 10;
 const WINDOW_MS = 60_000;
 // Above this many distinct keys, sweep out anything whose newest hit has
-// already aged out of the window, so a burst of one-off keys (e.g. many
-// distinct spoofed x-forwarded-for values in a non-Lambda deployment) cannot
-// grow the map without bound.
+// already aged out of the window. The sweep alone does not bound the map: a
+// flood of distinct keys inside one window is never stale. So at twice the
+// threshold every counter is dropped. That fails open for at most one window,
+// which is the right trade against unbounded memory in a long-lived container.
 const SWEEP_THRESHOLD = 1000;
 
 // Hono's AWS Lambda adapter (hono/aws-lambda) calls `app.fetch(req, { event,
@@ -47,7 +48,6 @@ export function createRateLimiter(opts: { limit?: number; windowMs?: number; swe
     /** Records a hit for `key` at time `t`; returns false if it is over the limit. */
     hit(key: string, t: number): boolean {
       const recent = (hits.get(key) ?? []).filter((x) => t - x < windowMs);
-      if (recent.length === 0) hits.delete(key);
       if (recent.length >= limit) return false;
       hits.set(key, [...recent, t]);
 
@@ -56,6 +56,7 @@ export function createRateLimiter(opts: { limit?: number; windowMs?: number; swe
           const newest = timestamps[timestamps.length - 1];
           if (newest === undefined || t - newest >= windowMs) hits.delete(k);
         }
+        if (hits.size > sweepThreshold * 2) hits.clear();
       }
       return true;
     },

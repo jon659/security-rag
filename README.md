@@ -22,10 +22,13 @@ Not yet done:
 
 ## Run locally
 
+Requires Node 22 or newer.
+
 1. Copy `.env.example` to `.env` and fill in the keys.
 2. `npm install`
 3. `npm run db:init` then `npm run ingest`
 4. `npm run ask "What is prompt injection?"`
+5. `npm run dev` serves the same pipeline over HTTP on port 3000, with a small demo page at `/`.
 
 ## Environment variables
 

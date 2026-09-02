@@ -20,7 +20,7 @@ PATTERNS = scanner.secret_patterns()
 #   - The generic-secret-assignment exclusion (a) in secrets_scan.py hides any
 #     value that is entirely letters, underscores, and dots with no digits, to
 #     avoid flagging real code references (cfg.apiKey, process.env.X). A
-#     literal secret typed in that same word.word.word shape with no digits,
+#     literal secret with two or more dot-separated all-letter segments and no digits (hunter.password, word.word.word),
 #     e.g. SECRET=plain.dotted.words, is missed by the same exclusion.
 #     Accepted for this gate; see the exclusion (a) comment for the reasoning.
 
