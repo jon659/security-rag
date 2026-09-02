@@ -14,12 +14,6 @@ export type Store = {
 
 export function makeStore(databaseUrl: string): Store {
   const pool = new pg.Pool({ connectionString: databaseUrl, ssl: { rejectUnauthorized: true }, max: 3 });
-  // registerTypes() queries pg_type for the "vector" OID; on a fresh database this can
-  // race the `create extension if not exists vector` statement in init() and throw
-  // inside this unawaited promise ("vector type not found in the database"), which
-  // crashes the process as an unhandled rejection. Swallow it here: it is a best-effort
-  // custom-type registration for decoding raw vector columns (none of this Store's
-  // queries select one), and it succeeds on every connection made after init() has run.
 
   return {
     async init() {
