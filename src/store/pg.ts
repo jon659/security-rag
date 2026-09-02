@@ -1,6 +1,9 @@
 import pg from "pg";
 import pgvector from "pgvector/pg";
 import type { RetrievedChunk } from "../graph/types.js";
+import { StoreError } from "./errors.js";
+
+export { StoreError } from "./errors.js";
 
 export type InsertRow = { docId: string; title: string; url: string; section: string; ordinal: number; content: string; embedding: number[] };
 
@@ -17,8 +20,9 @@ export function makeStore(databaseUrl: string): Store {
 
   return {
     async init() {
-      await pool.query("create extension if not exists vector");
-      await pool.query(`create table if not exists chunks (
+      try {
+        await pool.query("create extension if not exists vector");
+        await pool.query(`create table if not exists chunks (
         id serial primary key,
         doc_id text not null,
         title text not null,
@@ -28,8 +32,11 @@ export function makeStore(databaseUrl: string): Store {
         content text not null,
         embedding vector(1024) not null
       )`);
-      await pool.query("create index if not exists chunks_embedding_idx on chunks using hnsw (embedding vector_cosine_ops)");
-      await pool.query("create index if not exists chunks_doc_idx on chunks (doc_id)");
+        await pool.query("create index if not exists chunks_embedding_idx on chunks using hnsw (embedding vector_cosine_ops)");
+        await pool.query("create index if not exists chunks_doc_idx on chunks (doc_id)");
+      } catch (e) {
+        throw new StoreError("store operation failed: init", e);
+      }
     },
     async replaceDocument(docId, rows) {
       const client = await pool.connect();
@@ -46,26 +53,40 @@ export function makeStore(databaseUrl: string): Store {
         return rows.length;
       } catch (e) {
         await client.query("rollback");
-        throw e;
+        throw new StoreError("store operation failed: replaceDocument", e);
       } finally {
         client.release();
       }
     },
     async nearest(embedding, k) {
-      const res = await pool.query(
-        `select id, doc_id, title, url, coalesce(section, '') as section, content,
+      try {
+        const res = await pool.query(
+          `select id, doc_id, title, url, coalesce(section, '') as section, content,
                 1 - (embedding <=> $1) as score
          from chunks order by embedding <=> $1 limit $2`,
-        [pgvector.toSql(embedding), k],
-      );
-      return res.rows.map((r) => ({
-        id: r.id, docId: r.doc_id, title: r.title, url: r.url, section: r.section, content: r.content, score: Number(r.score),
-      }));
+          [pgvector.toSql(embedding), k],
+        );
+        return res.rows.map((r) => ({
+          id: r.id, docId: r.doc_id, title: r.title, url: r.url, section: r.section, content: r.content, score: Number(r.score),
+        }));
+      } catch (e) {
+        throw new StoreError("store operation failed: nearest", e);
+      }
     },
     async count() {
-      const res = await pool.query("select count(*)::int as n from chunks");
-      return res.rows[0].n as number;
+      try {
+        const res = await pool.query("select count(*)::int as n from chunks");
+        return res.rows[0].n as number;
+      } catch (e) {
+        throw new StoreError("store operation failed: count", e);
+      }
     },
-    async close() { await pool.end(); },
+    async close() {
+      try {
+        await pool.end();
+      } catch (e) {
+        throw new StoreError("store operation failed: close", e);
+      }
+    },
   };
 }
