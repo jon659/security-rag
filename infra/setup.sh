@@ -88,7 +88,7 @@ EOF
 if $AWS iam get-role --role-name "$EXEC_ROLE" >/dev/null 2>&1; then
   echo "exec role already exists"
 else
-  $AWS iam create-role --role-name "$EXEC_ROLE" --assume-role-policy-document "file://$TMPDIR/lambda-trust.json" >/dev/null
+  $AWS iam create-role --role-name "$EXEC_ROLE" --assume-role-policy-document "$(cat "$TMPDIR/lambda-trust.json")" >/dev/null
   echo "exec role created"
 fi
 $AWS iam attach-role-policy --role-name "$EXEC_ROLE" --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
@@ -124,13 +124,13 @@ cat > "$TMPDIR/deploy-policy.json" <<EOF
 EOF
 
 if $AWS iam get-role --role-name "$DEPLOY_ROLE" >/dev/null 2>&1; then
-  $AWS iam update-assume-role-policy --role-name "$DEPLOY_ROLE" --policy-document "file://$TMPDIR/deploy-trust.json"
+  $AWS iam update-assume-role-policy --role-name "$DEPLOY_ROLE" --policy-document "$(cat "$TMPDIR/deploy-trust.json")"
   echo "deploy role already exists, trust policy refreshed"
 else
-  $AWS iam create-role --role-name "$DEPLOY_ROLE" --assume-role-policy-document "file://$TMPDIR/deploy-trust.json" >/dev/null
+  $AWS iam create-role --role-name "$DEPLOY_ROLE" --assume-role-policy-document "$(cat "$TMPDIR/deploy-trust.json")" >/dev/null
   echo "deploy role created"
 fi
-$AWS iam put-role-policy --role-name "$DEPLOY_ROLE" --policy-name deploy --policy-document "file://$TMPDIR/deploy-policy.json"
+$AWS iam put-role-policy --role-name "$DEPLOY_ROLE" --policy-name deploy --policy-document "$(cat "$TMPDIR/deploy-policy.json")"
 DEPLOY_ROLE_ARN="arn:aws:iam::$ACCOUNT:role/$DEPLOY_ROLE"
 echo "deploy role arn: $DEPLOY_ROLE_ARN"
 
