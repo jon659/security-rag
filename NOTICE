@@ -1,0 +1,21 @@
+security-rag
+Copyright (c) 2026 Jonathan Harrison
+
+The code in this repository is licensed under the MIT License. See LICENSE.
+
+This repository's data/corpus/ directory contains third-party content that is
+reproduced for retrieval and quotation with attribution, and is retained under
+its own license terms, not the MIT License above:
+
+- OWASP Top 10 for LLM Applications (owasp-llm-top10-2025), source:
+  https://genai.owasp.org/llm-top-10/, licensed under CC BY-SA 4.0
+  (https://creativecommons.org/licenses/by-sa/4.0/).
+- OWASP Top 10 (owasp-top10-2021), source: https://owasp.org/Top10/,
+  licensed under CC BY-SA 4.0
+  (https://creativecommons.org/licenses/by-sa/4.0/).
+- MITRE ATLAS Techniques (mitre-atlas), source:
+  https://atlas.mitre.org/techniques, licensed under the Apache License,
+  Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0).
+
+Full attribution, canonical URLs, and fetch dates are tracked in
+data/corpus/SOURCES.md.
