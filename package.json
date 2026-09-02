@@ -1,0 +1,44 @@
+{
+  "name": "security-rag",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src eval tests scripts",
+    "test": "vitest run",
+    "build": "tsc",
+    "fetch-corpus": "tsx scripts/fetch-corpus.ts",
+    "db:init": "tsx src/store/init.ts",
+    "ingest": "tsx src/ingest/run.ts",
+    "ask": "tsx src/ask.ts",
+    "eval": "tsx eval/run.ts",
+    "dev": "tsx src/server/local.ts",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
+    "@hono/node-server": "^2.1.1",
+    "@langchain/core": "^1.2.9",
+    "@langchain/langgraph": "^1.4.13",
+    "cohere-ai": "^8.1.0",
+    "dotenv": "^17.4.2",
+    "hono": "^4.13.5",
+    "pg": "^8.23.0",
+    "pgvector": "^0.3.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.4.1",
+    "@types/pg": "^8.23.1",
+    "eslint": "^10.9.1",
+    "tsx": "^4.23.13",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.69.0",
+    "vitest": "^4.1.11"
+  }
+}
