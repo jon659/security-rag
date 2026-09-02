@@ -1,0 +1,92 @@
+name: deploy
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      REGION: ${{ vars.AWS_REGION }}
+      ACCOUNT: ${{ vars.AWS_ACCOUNT_ID }}
+      FUNC: security-rag
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/security-rag-deploy
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        run: |
+          IMAGE="$ACCOUNT.dkr.ecr.$REGION.amazonaws.com/security-rag:${{ github.sha }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Create or update the function
+        env:
+          COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if aws lambda get-function --function-name "$FUNC" --region "$REGION" >/dev/null 2>&1; then
+            echo "function exists, updating code"
+            aws lambda update-function-code --function-name "$FUNC" --image-uri "$IMAGE" --region "$REGION" >/dev/null
+            aws lambda wait function-updated --function-name "$FUNC" --region "$REGION"
+          else
+            echo "function does not exist yet, creating it"
+            # Built with jq so any character in a secret (commas, braces,
+            # quotes) is escaped correctly. Never printed: GitHub also
+            # masks these values in the log if they show up anyway.
+            ENV_JSON=$(jq -n \
+              --arg cohere "$COHERE_API_KEY" \
+              --arg anthropic "$ANTHROPIC_API_KEY" \
+              --arg db "$DATABASE_URL" \
+              '{Variables:{COHERE_API_KEY:$cohere,ANTHROPIC_API_KEY:$anthropic,DATABASE_URL:$db}}')
+            aws lambda create-function \
+              --function-name "$FUNC" \
+              --package-type Image \
+              --code ImageUri="$IMAGE" \
+              --role "${{ vars.LAMBDA_EXEC_ROLE_ARN }}" \
+              --timeout 60 \
+              --memory-size 1024 \
+              --environment "$ENV_JSON" \
+              --region "$REGION" >/dev/null
+            aws lambda wait function-active --function-name "$FUNC" --region "$REGION"
+
+            echo "creating the public function url"
+            aws lambda create-function-url-config --function-name "$FUNC" --auth-type NONE --region "$REGION" >/dev/null
+            aws lambda add-permission \
+              --function-name "$FUNC" \
+              --statement-id url-public \
+              --action lambda:InvokeFunctionUrl \
+              --principal "*" \
+              --function-url-auth-type NONE \
+              --region "$REGION" >/dev/null
+          fi
+
+      - name: Health check
+        run: |
+          URL=$(aws lambda get-function-url-config --function-name "$FUNC" --region "$REGION" --query FunctionUrl --output text)
+          echo "FUNCTION_URL=$URL" >> "$GITHUB_ENV"
+          BODY=$(curl -fsS "${URL}health")
+          echo "$BODY" | grep -q '"ok":true'
+
+      - name: Job summary
+        run: |
+          {
+            echo "## Deployed"
+            echo ""
+            echo "Function URL: ${FUNCTION_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -15,8 +15,7 @@ Ask an AI or application security question. Get an answer grounded in the OWASP 
 
 Not yet done:
 
-- The container image builds in CI but hasn't been deployed anywhere.
-- Phase 4 (AWS deploy) hasn't started.
+- Phase 4 (AWS deploy) has scripts in place (`infra/setup.sh`, `.github/workflows/deploy.yml`) but hasn't run yet. It's waiting on the owner to log in to AWS with a named CLI profile, run the one-time setup script, and set three GitHub repository variables plus three secrets; see `infra/README.md` for the exact sequence. Once that's done, the next push to `main` builds the image, creates the Lambda function, and deploys it automatically.
 - hit@5, as currently scored, measures first-pass retrieval only, before any rewrite step runs. A question the rewrite step rescues won't show up as a hit@5 win.
 
 ## Run locally
@@ -90,7 +89,11 @@ The eval runs on a Cohere trial key (10 calls a minute); the adapter backs off a
 
 ## Deploy shape
 
-The `Dockerfile` is a multi-stage build on the AWS Lambda Node 22 base image (`public.ecr.aws/lambda/nodejs:22`): the first stage compiles TypeScript with dev dependencies, the second copies the compiled output and installs production dependencies only. The Lambda handler is `dist/src/server/lambda.handler`. CI builds this image on every push and pull request; a deploy workflow that pushes it to AWS is future work.
+The `Dockerfile` is a multi-stage build on the AWS Lambda Node 22 base image (`public.ecr.aws/lambda/nodejs:22`): the first stage compiles TypeScript with dev dependencies, the second copies the compiled output and installs production dependencies only. The Lambda handler is `dist/src/server/lambda.handler`. CI builds this image on every push and pull request, but doesn't push it anywhere; the developer machine has no hypervisor, so the image is built and pushed to ECR by GitHub Actions, not locally.
+
+`infra/setup.sh` is a one-time script the owner runs from their own machine, once, with an AWS CLI profile: it creates the ECR repository, the Lambda execution role, the GitHub OIDC provider, and a deploy role that GitHub Actions can assume, scoped to this one repository's `main` branch. It never builds or pushes an image and never creates the Lambda function.
+
+`.github/workflows/deploy.yml` runs after `ci` finishes on `main`. It builds the image, pushes it to ECR tagged with the commit SHA, then checks whether the Lambda function already exists. On the first run it doesn't, so the workflow creates it from the pushed image, with its environment variables coming from GitHub Actions secrets, then adds a public function URL. On every run after that, it just updates the function's code to the new image. The workflow finishes by calling `/health` on the live function URL and fails the job if the response doesn't say `"ok":true`, so a broken deploy shows up as a red workflow, not a silent outage.
 
 ## Corpus and licenses
 
