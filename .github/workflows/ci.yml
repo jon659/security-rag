@@ -21,3 +21,4 @@ jobs:
           python-version: "3.12"
       - run: python scripts/secrets_scan_selftest.py
       - run: python scripts/secrets_scan.py .
+      - run: docker build -t security-rag:ci .
