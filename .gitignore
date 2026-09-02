@@ -5,3 +5,4 @@ dist/
 
 # SDD scratch (briefs, reports, diffs, ledger)
 .superpowers/
+__pycache__/
