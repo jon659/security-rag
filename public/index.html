@@ -29,7 +29,25 @@
     answer.textContent = data.answer + (data.rewritten ? "\n\n(The question was rewritten once to match the sources.)" : "");
     for (const s of data.sources) {
       const d = document.createElement("div"); d.className = "src";
-      d.innerHTML = `<strong>[${s.id}]</strong> <a href="${s.url}" target="_blank" rel="noopener">${s.title}</a>: ${s.section} <span class="muted">(${s.score.toFixed(2)})</span><br>${s.snippet}`;
+      const idEl = document.createElement("strong"); idEl.textContent = `[${s.id}]`;
+      d.appendChild(idEl);
+      d.appendChild(document.createTextNode(" "));
+      if (typeof s.url === "string" && (s.url.startsWith("http://") || s.url.startsWith("https://"))) {
+        const link = document.createElement("a");
+        link.href = s.url;
+        link.setAttribute("target", "_blank");
+        link.setAttribute("rel", "noopener");
+        link.textContent = s.title;
+        d.appendChild(link);
+      } else {
+        d.appendChild(document.createTextNode(s.title));
+      }
+      d.appendChild(document.createTextNode(`: ${s.section} `));
+      const scoreEl = document.createElement("span"); scoreEl.className = "muted";
+      scoreEl.textContent = `(${s.score.toFixed(2)})`;
+      d.appendChild(scoreEl);
+      d.appendChild(document.createElement("br"));
+      d.appendChild(document.createTextNode(s.snippet));
       sources.appendChild(d);
     }
   };
