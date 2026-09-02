@@ -108,18 +108,23 @@ def secret_patterns():
         #        one surgical exclusion. That loop IS detection engineering.
         #      - security-rag live-run tuning (2026-09-02), two more surgical
         #        exclusions in the same spirit:
-        #        (a) (?![A-Za-z_]\w*\.) -> a value that starts with an identifier
-        #            followed by "." is a code reference (cfg.apiKey, e.API_KEY,
-        #            process.env.X), not a literal. Real secrets never start
-        #            with "word." because they are opaque strings.
-        #        (b) (?![^\s'\"]*(?:your|example|placeholder|changeme|xxxx))
-        #            -> a value containing a placeholder word is documentation
-        #            (.env.example says your-key-here). Real keys are random.
+        #        (a) a value that is ENTIRELY a dotted identifier chain with no
+        #            digits (cfg.apiKey, e.API_KEY, process.env.X) is a code
+        #            reference, not a literal. Review caught that a looser
+        #            "starts with word." version would also hide a hardcoded
+        #            JWT (eyJhbGci...9.eyJzdWIi...), so the exclusion requires
+        #            the whole value to be letters/underscores and dots, and
+        #            to end there. JWT segments carry digits, so they still hit.
+        #        (b) a value containing a placeholder WORD as its own segment
+        #            (your-key-here, changeme, xxxx) is documentation. Bounded
+        #            by non-letters on both sides so a random token that merely
+        #            contains "your" is still flagged.
+        #        scripts/secrets_scan_selftest.py pins both behaviours in CI.
         ("Generic secret assignment",
          re.compile(r"(?i)[\w.-]*(?:api[_-]?key|token|secret|passw)[\w.-]*"
                     r"\s*[:=]\s*['\"]?"
-                    r"(?![A-Za-z_]\w*\.)"
-                    r"(?![^\s'\"]*(?:your|example|placeholder|changeme|xxxx))"
+                    r"(?![A-Za-z_]+(?:\.[A-Za-z_]+)+(?![\w.\-/+]))"
+                    r"(?![^\s'\"]*(?<![A-Za-z])(?:your|example|placeholder|changeme|xxxx)(?![A-Za-z]))"
                     r"[A-Za-z0-9_\-./+]{12,}['\"]?(?!\()")),
 
         # 2. VENDOR-SHAPED TOKENS -- near-zero false positives because these
