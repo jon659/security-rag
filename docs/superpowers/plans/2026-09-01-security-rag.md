@@ -94,7 +94,7 @@ security-rag/
 
 Run:
 ```bash
-cd "C:/Users/Jonathan Harrison/Documents/DU/security-rag"
+cd "C:/Users/Jonathan Harrison/Documents/portfolio/security-rag"
 npm install @langchain/langgraph @langchain/core cohere-ai @anthropic-ai/sdk pg pgvector hono @hono/node-server zod dotenv
 npm install -D typescript tsx vitest @types/node @types/pg eslint @eslint/js typescript-eslint
 ```
