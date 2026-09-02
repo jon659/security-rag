@@ -15,7 +15,6 @@ Ask an AI or application security question. Get an answer grounded in the OWASP 
 
 Not yet done:
 
-- Live evaluation numbers are pending API credit (see Evaluation below).
 - The container image builds in CI but hasn't been deployed anywhere.
 - Phase 4 (AWS deploy) hasn't started.
 - hit@5, as currently scored, measures first-pass retrieval only, before any rewrite step runs. A question the rewrite step rescues won't show up as a hit@5 win.
@@ -82,10 +81,12 @@ Returns `{ "ok": true, "chunks": number }` on success, or `{ "ok": false }` with
 
 | Metric | Result | Date |
 |---|---|---|
-| Retrieval hit@5 | pending | 2026-09-02 |
-| Refusal accuracy | pending | 2026-09-02 |
+| Retrieval hit@5 | 100% (25/25 in-corpus) | 2026-09-02 |
+| Refusal accuracy | 100% (28/28) | 2026-09-02 |
 
-`npm run eval` currently fails before scoring any question: the Anthropic account has no API credit (`BadRequestError: 400 ... "Your credit balance is too low to access the Anthropic API."`). Retrieval and the scorer are implemented and unit-tested; the numbers above will be filled in once the eval run completes against live vendors.
+Three runs were needed to get here, and the first two are worth knowing about. Run 1 scored hit@5 at 28%: chunks carried only their nearest heading ("Description", "How to Prevent"), so the scorer could not see which risk a chunk belonged to. Sections are now the full heading path. Run 2 scored 100% retrieval but 86% refusal accuracy: the model sometimes cited inline but returned an empty citations list, so the verify step refused. Inline ids are now recovered and still checked against the retrieved chunks. Generation also moved from JSON-in-text to a forced tool call with a schema after three parse failures in run 1.
+
+The eval runs on a Cohere trial key (10 calls a minute); the adapter backs off and retries on 429, so a full run takes about 15 minutes.
 
 ## Deploy shape
 
