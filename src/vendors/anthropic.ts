@@ -8,6 +8,7 @@ Rules:
 2. Cite sources by their numeric id in square brackets, like [12], after each claim.
 3. If the sources do not contain the answer, reply with exactly: NOT_COVERED: followed by one sentence saying what the sources do cover.
 4. Be concise: 3 to 8 sentences.
+5. Plain punctuation only: no em dashes, use commas or periods instead.
 Respond by calling the answer tool with the answer text and the list of every id you cited.`;
 
 const ANSWER_TOOL: Anthropic.Messages.Tool = {
