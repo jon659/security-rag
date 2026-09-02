@@ -16,12 +16,12 @@ PATTERNS = scanner.secret_patterns()
 
 # Lines the scanner MUST flag: real-shaped secrets assigned to secret-ish names.
 MUST_FLAG = [
-    "API_KEY=sk_live_8f3kd93jdmf83jfk",
-    'token: "ghp_abcdefghijklmnopqrstuvwxyz0123456789ABCD"',
-    "password = hunter2hunter2hunter2",
-    "DATABASE_PASSWORD=Xq9v2LmZp4Rt7Wn1",
-    'authToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcDEF123xyz"',
-    "SECRET=a9yourb8c7d6e5f4g3h2",
+    "API_KEY=sk_live_8f3kd93jdmf83jfk",  # fake, scanner:ignore
+    'token: "ghp_abcdefghijklmnopqrstuvwxyz0123456789ABCD"',  # fake, scanner:ignore
+    "password = hunter2hunter2hunter2",  # fake, scanner:ignore
+    "DATABASE_PASSWORD=Xq9v2LmZp4Rt7Wn1",  # fake, scanner:ignore
+    'authToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcDEF123xyz"',  # fake, scanner:ignore
+    "SECRET=a9yourb8c7d6e5f4g3h2",  # fake, scanner:ignore
 ]
 
 # Lines the scanner MUST NOT flag: code references and documented placeholders.
