@@ -16,8 +16,7 @@
     "ingest": "tsx src/ingest/run.ts",
     "ask": "tsx src/ask.ts",
     "eval": "tsx eval/run.ts",
-    "dev": "tsx src/server/local.ts",
-    "smoke": "tsx scripts/smoke.ts"
+    "dev": "tsx src/server/local.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",
