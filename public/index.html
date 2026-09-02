@@ -14,7 +14,7 @@
 <body>
 <h1>security-rag</h1>
 <p class="muted">Answers grounded in the OWASP LLM Top 10, the OWASP Top 10, and MITRE ATLAS. Cites its sources or says it cannot.</p>
-<textarea id="q" placeholder="What is prompt injection and how do I defend against it?"></textarea>
+<textarea id="q" placeholder="What is prompt injection and how do I defend against it?" maxlength="500"></textarea>
 <p><button id="go">Ask</button></p>
 <div id="answer"></div>
 <div id="sources"></div>
@@ -23,8 +23,14 @@
   const answer = document.getElementById("answer"), sources = document.getElementById("sources");
   go.onclick = async () => {
     answer.textContent = "Thinking..."; sources.innerHTML = "";
-    const res = await fetch("/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: q.value }) });
-    const data = await res.json();
+    let data, res;
+    try {
+      res = await fetch("/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: q.value }) });
+      data = await res.json();
+    } catch {
+      answer.textContent = "Request failed.";
+      return;
+    }
     if (!res.ok) { answer.textContent = data.error || "Request failed."; return; }
     answer.textContent = data.answer + (data.rewritten ? "\n\n(The question was rewritten once to match the sources.)" : "");
     for (const s of data.sources) {
@@ -32,7 +38,7 @@
       const idEl = document.createElement("strong"); idEl.textContent = `[${s.id}]`;
       d.appendChild(idEl);
       d.appendChild(document.createTextNode(" "));
-      if (typeof s.url === "string" && (s.url.startsWith("http://") || s.url.startsWith("https://"))) {
+      if (typeof s.url === "string" && (s.url.toLowerCase().startsWith("http://") || s.url.toLowerCase().startsWith("https://"))) {
         const link = document.createElement("a");
         link.href = s.url;
         link.setAttribute("target", "_blank");
