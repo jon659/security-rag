@@ -11,6 +11,7 @@ export function makeCohere(cfg: Config): Pick<Vendors, "embedQuery" | "embedDocu
       texts,
       inputType,
       embeddingTypes: ["float"],
+      outputDimension: 1024,
     });
     const vectors = res.embeddings?.float;
     if (!vectors || vectors.length !== texts.length) throw new Error("Cohere embed returned an unexpected shape");
