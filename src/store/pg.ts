@@ -20,7 +20,6 @@ export function makeStore(databaseUrl: string): Store {
   // crashes the process as an unhandled rejection. Swallow it here: it is a best-effort
   // custom-type registration for decoding raw vector columns (none of this Store's
   // queries select one), and it succeeds on every connection made after init() has run.
-  pool.on("connect", (client) => { void pgvector.registerTypes(client).catch(() => {}); });
 
   return {
     async init() {
