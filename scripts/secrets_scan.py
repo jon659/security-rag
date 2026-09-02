@@ -48,38 +48,17 @@ MAX_BYTES = 2_000_000  # skip files > ~2 MB; source with secrets is small
 ALLOW_MARKER = "scanner:ignore"
 
 
-# === YOUR CONTRIBUTION ====================================================
-# This function is the brain of the scanner. Everything else is plumbing.
+# Returns a list of (name, compiled_regex) tuples. For each line in each
+# file, the scanner tries every regex; a match becomes a finding labelled
+# `name`.
 #
-# Return a list of (name, compiled_regex) tuples. For each line in each file,
-# the scanner tries every regex; a match becomes a finding labelled `name`.
-#
-# The skill here is BALANCE:
+# The design constraint here is BALANCE:
 #   - Too loose  -> false positives (every "key = value" lights up) -> noise
 #                   that a real team learns to ignore, which hides real leaks.
-#   - Too strict -> you miss real keys that don't match a known vendor format.
-#
-# I've seeded two HIGH-PRECISION patterns below (they almost never false-positive)
-# so the tool runs today. Your job: add the higher-recall, judgment-heavy ones.
-#
-# Ideas to implement (pick what you think earns its keep):
-#   1. A GENERIC assignment pattern: a variable whose name contains
-#      key/token/secret/password/passwd/apikey, assigned a quoted string of
-#      some minimum length. This is where false positives creep in -- decide a
-#      sensible minimum length and whether to require quotes.
-#   2. Specific vendor tokens with recognizable shapes, e.g.:
-#         - Google API key:   AIza followed by 35 url-safe chars
-#         - Slack token:      xox[baprs]-...
-#         - GitHub PAT:       ghp_ / github_pat_ followed by many chars
-#         - Generic bearer:   "Bearer " + a long token
-#   3. (Optional) A high-entropy string catch: a long run of base64-ish chars.
-#      Powerful but false-positive-prone -- your call whether it's worth it.
-#
-# Regex tips: use raw strings r"...", and remember re.IGNORECASE via re.I for
-# the variable-name part. Test at https://regex101.com if a pattern misbehaves.
+#   - Too strict -> real keys that don't match a known vendor format are missed.
 def secret_patterns():
     patterns = [
-        # High-precision seeds (leave these; they rarely misfire):
+        # High-precision patterns -- these rarely misfire:
         ("Private key block",
          re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----")),
         ("AWS access key id",
@@ -108,13 +87,18 @@ def secret_patterns():
         #        one surgical exclusion. That loop IS detection engineering.
         #      - security-rag live-run tuning (2026-09-02), two more surgical
         #        exclusions in the same spirit:
-        #        (a) a value that is ENTIRELY a dotted identifier chain with no
-        #            digits (cfg.apiKey, e.API_KEY, process.env.X) is a code
-        #            reference, not a literal. Review caught that a looser
-        #            "starts with word." version would also hide a hardcoded
-        #            JWT (eyJhbGci...9.eyJzdWIi...), so the exclusion requires
-        #            the whole value to be letters/underscores and dots, and
-        #            to end there. JWT segments carry digits, so they still hit.
+        #        (a) a value that is ENTIRELY letters, underscores, and dots,
+        #            with no digits anywhere (cfg.apiKey, e.API_KEY,
+        #            process.env.X), is treated as a code reference, not a
+        #            literal secret. This is a deliberate, narrower trade than
+        #            "starts with word.": a digit-free literal shaped like
+        #            word.word.word (e.g. a secret someone typed as
+        #            plain.dotted.words) is a known residual gap this pattern
+        #            will not catch, accepted so real dotted identifiers don't
+        #            drown the scan in noise. A hardcoded JWT
+        #            (eyJhbGci...9.eyJzdWIi...) is unaffected either way: its
+        #            base64 segments carry digits, so it never matches this
+        #            all-letters-and-dots exclusion and still gets flagged.
         #        (b) a value containing a placeholder WORD as its own segment
         #            (your-key-here, changeme, xxxx) is documentation. Bounded
         #            by non-letters on both sides so a random token that merely
@@ -128,8 +112,8 @@ def secret_patterns():
                     r"[A-Za-z0-9_\-./+]{12,}['\"]?(?!\()")),
 
         # 2. VENDOR-SHAPED TOKENS -- near-zero false positives because these
-        #    prefixes are globally unique to one issuer. If you see "ghp_" + 36
-        #    chars, it IS a GitHub token; nothing else looks like that.
+        #    prefixes are globally unique to one issuer: "ghp_" + 36 chars IS
+        #    a GitHub token; nothing else is shaped like that.
         ("Google API key",
          re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b")),
         ("GitHub token",
@@ -149,7 +133,6 @@ def secret_patterns():
         # files, the noise would drown the signal. Recall isn't free.
     ]
     return patterns
-# === END YOUR CONTRIBUTION =================================================
 
 
 def redact(match_text):

@@ -14,6 +14,16 @@ scanner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scanner)
 PATTERNS = scanner.secret_patterns()
 
+# KNOWN_GAPS: documented residual misses in secret_patterns(), not asserted
+# either way here (not MUST_FLAG, not MUST_IGNORE). Recorded so a future
+# tightening pass has a known target instead of rediscovering it.
+#   - The generic-secret-assignment exclusion (a) in secrets_scan.py hides any
+#     value that is entirely letters, underscores, and dots with no digits, to
+#     avoid flagging real code references (cfg.apiKey, process.env.X). A
+#     literal secret typed in that same word.word.word shape with no digits,
+#     e.g. SECRET=plain.dotted.words, is missed by the same exclusion.
+#     Accepted for this gate; see the exclusion (a) comment for the reasoning.
+
 # Lines the scanner MUST flag: real-shaped secrets assigned to secret-ish names.
 MUST_FLAG = [
     "API_KEY=sk_live_8f3kd93jdmf83jfk",  # fake, scanner:ignore
