@@ -41,6 +41,7 @@ export function makeAnthropic(cfg: Config): Pick<Vendors, "rewrite" | "generate"
         const citations = Array.isArray(parsed.citations) ? parsed.citations.filter((n): n is number => Number.isInteger(n)) : [];
         return { answer, citations };
       } catch {
+        console.log(JSON.stringify({ level: "warn", event: "generate_parse_failed", rawLength: raw.length }));
         return { answer: raw, citations: [] };
       }
     },
