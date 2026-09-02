@@ -9,34 +9,28 @@ async function fetchText(url: string): Promise<string> {
   return res.text();
 }
 
+function collectTechniques(node: unknown, out: Map<string, Record<string, unknown>>): void {
+  if (Array.isArray(node)) {
+    for (const item of node) collectTechniques(item, out);
+  } else if (node && typeof node === "object") {
+    const obj = node as Record<string, unknown>;
+    if (typeof obj.id === "string" && obj.id.startsWith("AML.T") && typeof obj.name === "string") {
+      out.set(obj.id, obj);
+    }
+    for (const value of Object.values(obj)) collectTechniques(value, out);
+  }
+}
+
 function atlasToMarkdown(yamlText: string, title: string): string {
   const data = parseYaml(yamlText) as unknown;
-  let techniques: Record<string, Record<string, unknown>> = {};
-
-  if (Array.isArray(data)) {
-    for (const t of data) {
-      const id = String((t as Record<string, unknown>).id ?? "");
-      if (id) techniques[id] = t as Record<string, unknown>;
-    }
-  } else if (typeof data === "object" && data !== null) {
-    const obj = data as Record<string, unknown>;
-    if (obj.techniques && typeof obj.techniques === "object") {
-      techniques = obj.techniques as Record<string, Record<string, unknown>>;
-    } else if (obj.data && typeof obj.data === "object") {
-      const dataObj = obj.data as Record<string, unknown>;
-      if (dataObj.techniques && typeof dataObj.techniques === "object") {
-        techniques = dataObj.techniques as Record<string, Record<string, unknown>>;
-      }
-    }
-  }
+  const techniques = new Map<string, Record<string, unknown>>();
+  collectTechniques(data, techniques);
 
   const parts = [`# ${title}`, ""];
-  for (const [id, t] of Object.entries(techniques)) {
-    const name = String(t.name ?? "");
+  for (const [id, t] of techniques) {
     const desc = String(t.description ?? "").trim();
-    if (!name) continue;
-    const fullId = String(id);
-    parts.push(`## ${fullId} ${name}`, "", desc, "");
+    if (!desc) continue;
+    parts.push(`## ${id} ${String(t.name)}`, "", desc, "");
   }
   return parts.join("\n");
 }
@@ -45,6 +39,7 @@ async function main() {
   const manifest = JSON.parse(await readFile("data/corpus/manifest.json", "utf8")) as { documents: Doc[] };
   await mkdir("data/corpus", { recursive: true });
   for (const doc of manifest.documents) {
+    if (doc.files.length === 0) throw new Error(`Manifest doc "${doc.doc_id}" has an empty files array`);
     let out: string;
     if (doc.kind === "markdown") {
       const bodies = [];
