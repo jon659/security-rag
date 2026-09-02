@@ -1,0 +1,52 @@
+{
+  "documents": [
+    {
+      "doc_id": "owasp-llm-top10-2025",
+      "title": "OWASP Top 10 for LLM Applications 2025",
+      "url": "https://genai.owasp.org/llm-top-10/",
+      "license": "CC BY-SA 4.0",
+      "kind": "markdown",
+      "files": [
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM01_PromptInjection.md",
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM02_SensitiveInformationDisclosure.md",
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM03_SupplyChain.md",
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM04_DataModelPoisoning.md",
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM05_ImproperOutputHandling.md",
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM06_ExcessiveAgency.md",
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM07_SystemPromptLeakage.md",
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM08_VectorAndEmbeddingWeaknesses.md",
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM09_Misinformation.md",
+        "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM10_UnboundedConsumption.md"
+      ]
+    },
+    {
+      "doc_id": "owasp-top10-2021",
+      "title": "OWASP Top 10 2021",
+      "url": "https://owasp.org/Top10/",
+      "license": "CC BY-SA 4.0",
+      "kind": "markdown",
+      "files": [
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A01_2021-Broken_Access_Control.md",
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A02_2021-Cryptographic_Failures.md",
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A03_2021-Injection.md",
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A04_2021-Insecure_Design.md",
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A05_2021-Security_Misconfiguration.md",
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A06_2021-Vulnerable_and_Outdated_Components.md",
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A07_2021-Identification_and_Authentication_Failures.md",
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A08_2021-Software_and_Data_Integrity_Failures.md",
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A09_2021-Security_Logging_and_Monitoring_Failures.md",
+        "https://raw.githubusercontent.com/OWASP/Top10/master/2021/docs/en/A10_2021-Server-Side_Request_Forgery_%28SSRF%29.md"
+      ]
+    },
+    {
+      "doc_id": "mitre-atlas",
+      "title": "MITRE ATLAS Techniques",
+      "url": "https://atlas.mitre.org/techniques",
+      "license": "Apache 2.0 (see repository LICENSE)",
+      "kind": "atlas-yaml",
+      "files": [
+        "https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2022.05.yaml"
+      ]
+    }
+  ]
+}
