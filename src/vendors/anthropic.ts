@@ -28,14 +28,26 @@ const ANSWER_TOOL: Anthropic.Messages.Tool = {
  * tool call (the model wrote prose instead) yields the prose and no citations, which the
  * graph's verify step turns into a refusal rather than an uncited answer.
  */
+/** Numeric ids cited inline as [12] or [12, 15]. Exported for unit tests. */
+export function citedIdsInText(text: string): number[] {
+  const ids = new Set<number>();
+  for (const m of text.matchAll(/\[(\d+(?:\s*,\s*\d+)*)\]/g)) {
+    for (const part of m[1].split(",")) ids.add(Number(part.trim()));
+  }
+  return [...ids];
+}
+
 export function parseGenerateResponse(msg: Anthropic.Messages.Message): { answer: string; citations: number[] } {
   const call = msg.content.find((b) => b.type === "tool_use" && b.name === "answer");
   if (call && call.type === "tool_use") {
     const input = call.input as { answer?: unknown; citations?: unknown };
     const answer = typeof input.answer === "string" ? input.answer : "";
-    const citations = Array.isArray(input.citations)
+    let citations = Array.isArray(input.citations)
       ? input.citations.map(Number).filter((n) => Number.isInteger(n))
       : [];
+    // The model sometimes cites inline ([1115]) but returns an empty list. Recover the ids
+    // from the text; verify() still drops any id that was not actually retrieved.
+    if (citations.length === 0) citations = citedIdsInText(answer);
     if (answer) return { answer, citations };
   }
   const raw = textOf(msg);
