@@ -59,12 +59,22 @@ jobs:
             echo "timed out waiting for the function to become ready"; return 1
           }
           if aws lambda get-function --function-name "$FUNC" --region "$REGION" >/dev/null 2>&1; then
-            echo "function exists, updating code"
+            echo "function exists, updating configuration and code"
+            wait_ready
+            # Re-apply the environment on every run so a corrected GitHub secret propagates.
+            ENV_JSON=$(jq -n               --arg cohere "$COHERE_API_KEY"               --arg anthropic "$ANTHROPIC_API_KEY"               --arg db "$DATABASE_URL"               '{Variables:{COHERE_API_KEY:$cohere,ANTHROPIC_API_KEY:$anthropic,DATABASE_URL:$db}}')
+            for name in COHERE_API_KEY ANTHROPIC_API_KEY DATABASE_URL; do
+              if [ -z "${!name}" ]; then echo "GitHub secret $name is empty or missing; set it under Settings, Secrets and variables, Actions"; exit 1; fi
+            done
+            aws lambda update-function-configuration --function-name "$FUNC" --environment "$ENV_JSON" --region "$REGION" >/dev/null
             wait_ready
             aws lambda update-function-code --function-name "$FUNC" --image-uri "$IMAGE" --region "$REGION" >/dev/null
             wait_ready
           else
             echo "function does not exist yet, creating it"
+            for name in COHERE_API_KEY ANTHROPIC_API_KEY DATABASE_URL; do
+              if [ -z "${!name}" ]; then echo "GitHub secret $name is empty or missing; set it under Settings, Secrets and variables, Actions"; exit 1; fi
+            done
             # Built with jq so any character in a secret (commas, braces,
             # quotes) is escaped correctly. Never printed: GitHub also
             # masks these values in the log if they show up anyway.
