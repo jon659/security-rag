@@ -1,5 +1,6 @@
 name: deploy
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: [ci]
     types: [completed]
@@ -9,7 +10,7 @@ permissions:
   contents: read
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
       REGION: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
@@ -18,7 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Show OIDC subject (not secret; helps debug trust policy)
+        run: |
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
+          echo "$TOKEN" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{sub, aud, ref, repository}'
+          echo "account id length: ${#ACCOUNT}"
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
