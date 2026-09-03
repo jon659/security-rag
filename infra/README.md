@@ -67,3 +67,5 @@ role's trust and inline policy either way.
 It never prints their values and never sends them to AWS. The Lambda function's actual runtime
 environment is built by `deploy.yml` from the GitHub Actions secrets you set in step 4, not from
 this file.
+
+Note: the three values above may be stored either as repository variables or as repository secrets; the deploy workflow reads whichever is present.

@@ -12,8 +12,8 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
-      REGION: ${{ vars.AWS_REGION }}
-      ACCOUNT: ${{ vars.AWS_ACCOUNT_ID }}
+      REGION: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
+      ACCOUNT: ${{ vars.AWS_ACCOUNT_ID || secrets.AWS_ACCOUNT_ID }}
       FUNC: security-rag
     steps:
       - uses: actions/checkout@v4
@@ -22,8 +22,8 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/security-rag-deploy
-          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID || secrets.AWS_ACCOUNT_ID }}:role/security-rag-deploy
+          aws-region: ${{ vars.AWS_REGION || secrets.AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v2
 
@@ -58,7 +58,7 @@ jobs:
               --function-name "$FUNC" \
               --package-type Image \
               --code ImageUri="$IMAGE" \
-              --role "${{ vars.LAMBDA_EXEC_ROLE_ARN }}" \
+              --role "${{ vars.LAMBDA_EXEC_ROLE_ARN || secrets.LAMBDA_EXEC_ROLE_ARN }}" \
               --timeout 60 \
               --memory-size 1024 \
               --environment "$ENV_JSON" \
