@@ -47,41 +47,38 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
+          # Poll with get-function (lambda:GetFunction) instead of the CLI waiters, which need
+          # lambda:GetFunctionConfiguration that the deploy role does not have.
+          wait_ready() {
+            for i in $(seq 1 60); do
+              read -r STATE UPDATE <<<"$(aws lambda get-function --function-name "$FUNC" --region "$REGION"                 --query 'Configuration.[State,LastUpdateStatus]' --output text)"
+              if [ "$STATE" = "Active" ] && [ "$UPDATE" = "Successful" ]; then return 0; fi
+              if [ "$STATE" = "Failed" ] || [ "$UPDATE" = "Failed" ]; then echo "function state $STATE / $UPDATE"; return 1; fi
+              sleep 5
+            done
+            echo "timed out waiting for the function to become ready"; return 1
+          }
           if aws lambda get-function --function-name "$FUNC" --region "$REGION" >/dev/null 2>&1; then
             echo "function exists, updating code"
+            wait_ready
             aws lambda update-function-code --function-name "$FUNC" --image-uri "$IMAGE" --region "$REGION" >/dev/null
-            aws lambda wait function-updated --function-name "$FUNC" --region "$REGION"
+            wait_ready
           else
             echo "function does not exist yet, creating it"
             # Built with jq so any character in a secret (commas, braces,
             # quotes) is escaped correctly. Never printed: GitHub also
             # masks these values in the log if they show up anyway.
-            ENV_JSON=$(jq -n \
-              --arg cohere "$COHERE_API_KEY" \
-              --arg anthropic "$ANTHROPIC_API_KEY" \
-              --arg db "$DATABASE_URL" \
-              '{Variables:{COHERE_API_KEY:$cohere,ANTHROPIC_API_KEY:$anthropic,DATABASE_URL:$db}}')
-            aws lambda create-function \
-              --function-name "$FUNC" \
-              --package-type Image \
-              --code ImageUri="$IMAGE" \
-              --role "${{ vars.LAMBDA_EXEC_ROLE_ARN || secrets.LAMBDA_EXEC_ROLE_ARN }}" \
-              --timeout 60 \
-              --memory-size 1024 \
-              --environment "$ENV_JSON" \
-              --region "$REGION" >/dev/null
-            aws lambda wait function-active --function-name "$FUNC" --region "$REGION"
+            ENV_JSON=$(jq -n               --arg cohere "$COHERE_API_KEY"               --arg anthropic "$ANTHROPIC_API_KEY"               --arg db "$DATABASE_URL"               '{Variables:{COHERE_API_KEY:$cohere,ANTHROPIC_API_KEY:$anthropic,DATABASE_URL:$db}}')
+            aws lambda create-function               --function-name "$FUNC"               --package-type Image               --code ImageUri="$IMAGE"               --role "${{ vars.LAMBDA_EXEC_ROLE_ARN || secrets.LAMBDA_EXEC_ROLE_ARN }}"               --timeout 60               --memory-size 1024               --environment "$ENV_JSON"               --region "$REGION" >/dev/null
+            wait_ready
+          fi
 
+          # Public URL and invoke permission, idempotent: both calls fail harmlessly when already present.
+          if ! aws lambda get-function-url-config --function-name "$FUNC" --region "$REGION" >/dev/null 2>&1; then
             echo "creating the public function url"
             aws lambda create-function-url-config --function-name "$FUNC" --auth-type NONE --region "$REGION" >/dev/null
-            aws lambda add-permission \
-              --function-name "$FUNC" \
-              --statement-id url-public \
-              --action lambda:InvokeFunctionUrl \
-              --principal "*" \
-              --function-url-auth-type NONE \
-              --region "$REGION" >/dev/null
           fi
+          aws lambda add-permission             --function-name "$FUNC"             --statement-id url-public             --action lambda:InvokeFunctionUrl             --principal "*"             --function-url-auth-type NONE             --region "$REGION" >/dev/null 2>&1 || echo "invoke permission already present"
 
       - name: Health check
         run: |

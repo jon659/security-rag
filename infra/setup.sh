@@ -121,7 +121,7 @@ cat > "$TMPDIR/deploy-policy.json" <<EOF
 {"Version":"2012-10-17","Statement":[
  {"Effect":"Allow","Action":["ecr:GetAuthorizationToken"],"Resource":"*"},
  {"Effect":"Allow","Action":["ecr:BatchCheckLayerAvailability","ecr:CompleteLayerUpload","ecr:InitiateLayerUpload","ecr:PutImage","ecr:UploadLayerPart","ecr:BatchGetImage","ecr:GetDownloadUrlForLayer"],"Resource":"arn:aws:ecr:$REGION:$ACCOUNT:repository/$REPO"},
- {"Effect":"Allow","Action":["lambda:CreateFunction","lambda:UpdateFunctionCode","lambda:UpdateFunctionConfiguration","lambda:GetFunction","lambda:CreateFunctionUrlConfig","lambda:GetFunctionUrlConfig","lambda:AddPermission"],"Resource":"arn:aws:lambda:$REGION:$ACCOUNT:function:$FUNC"},
+ {"Effect":"Allow","Action":["lambda:CreateFunction","lambda:UpdateFunctionCode","lambda:UpdateFunctionConfiguration","lambda:GetFunction","lambda:GetFunctionConfiguration","lambda:CreateFunctionUrlConfig","lambda:GetFunctionUrlConfig","lambda:AddPermission"],"Resource":"arn:aws:lambda:$REGION:$ACCOUNT:function:$FUNC"},
  {"Effect":"Allow","Action":["iam:PassRole"],"Resource":"$EXEC_ROLE_ARN"}
 ]}
 EOF
