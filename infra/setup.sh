@@ -75,6 +75,9 @@ fi
 # 1. ECR repository for the image
 if $AWS ecr describe-repositories --repository-names "$REPO" --region "$REGION" >/dev/null 2>&1; then
   echo "ecr repository already exists"
+# Let the Lambda service pull images from this repository (Lambda checks this at CreateFunction).
+$AWS ecr set-repository-policy --repository-name "$REPO" --region "$REGION" --policy-text "$(cat "$(dirname "$0")/ecr-policy.json")" >/dev/null
+echo "ecr repository policy set for lambda.amazonaws.com"
 else
   $AWS ecr create-repository --repository-name "$REPO" --region "$REGION" >/dev/null
   echo "ecr repository created"

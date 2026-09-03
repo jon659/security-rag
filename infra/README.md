@@ -71,3 +71,5 @@ this file.
 Note: the three values above may be stored either as repository variables or as repository secrets; the deploy workflow reads whichever is present.
 
 Trust policy note: GitHub's OIDC subject includes numeric ids (repo:owner@id/name@id:ref:refs/heads/main). The deploy role trusts the pattern repo:jon659*/security-rag*:ref:refs/heads/main. To reapply it by hand: aws iam update-assume-role-policy --role-name security-rag-deploy --policy-document file://infra/deploy-trust.json --profile <name>
+
+ECR note: Lambda must be allowed to pull the image. setup.sh applies infra/ecr-policy.json to the repository; by hand: aws ecr set-repository-policy --repository-name security-rag --region us-east-2 --policy-text file://infra/ecr-policy.json --profile <name>
