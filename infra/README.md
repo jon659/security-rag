@@ -69,3 +69,5 @@ environment is built by `deploy.yml` from the GitHub Actions secrets you set in 
 this file.
 
 Note: the three values above may be stored either as repository variables or as repository secrets; the deploy workflow reads whichever is present.
+
+Trust policy note: GitHub's OIDC subject includes numeric ids (repo:owner@id/name@id:ref:refs/heads/main). The deploy role trusts the pattern repo:jon659*/security-rag*:ref:refs/heads/main. To reapply it by hand: aws iam update-assume-role-policy --role-name security-rag-deploy --policy-document file://infra/deploy-trust.json --profile <name>
